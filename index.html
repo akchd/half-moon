@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>떠오르는 반달 - Rise of the Half Moon</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 우주 배경 및 파티클 캔버스 -->
+  <canvas id="starsCanvas"></canvas>
+  <canvas id="particleCanvas"></canvas>
+
+  <div class="app-container">
+    <!-- 상단 헤더 -->
+    <header class="game-header">
+      <div class="title-area">
+        <svg class="title-logo" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="44" fill="#1e1838" stroke="#ffd54f" stroke-width="3" />
+          <path d="M 50 6 A 44 44 0 0 1 50 94 L 50 6 Z" fill="#ffd54f" />
+        </svg>
+        <div>
+          <h1>떠오르는 반달</h1>
+          <div style="font-size: 0.68rem; color: #9ea7c7;">Rise of the Half Moon</div>
+        </div>
+        <span class="round-badge" id="roundBadge">라운드 1 / 3</span>
+      </div>
+
+      <div class="header-buttons">
+        <button class="icon-btn" id="rulesBtn" title="게임 규칙">📜 규칙</button>
+        <button class="icon-btn" id="soundBtn" title="사운드 켜기/끄기">🔊 사운드</button>
+        <button class="icon-btn" id="restartBtn" title="현재 라운드 다시 시작">🔄 재시작</button>
+      </div>
+    </header>
+
+    <!-- 대결 스코어보드 & 반달 AI 컴패니언 -->
+    <section class="versus-panel">
+      <!-- 플레이어 (나) -->
+      <div class="player-card is-player active-turn">
+        <div class="avatar-ring">🧑‍🚀</div>
+        <div class="player-info">
+          <span class="player-name">플레이어 (나)</span>
+          <div class="score-display">
+            <span id="playerScore">0</span>
+            <span class="score-unit">점</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 중앙 AI 달님 얼굴 & 턴 인디케이터 -->
+      <div class="moon-center-status">
+        <div class="ai-moon-face" id="aiMoonFace" title="반달 AI의 표정"></div>
+        <div class="turn-pill player-turn" id="turnPill">✨ 당신의 턴</div>
+      </div>
+
+      <!-- 반달 AI (상대) -->
+      <div class="player-card is-ai">
+        <div class="avatar-ring">🌙</div>
+        <div class="player-info">
+          <span class="player-name">반달 AI (상대)</span>
+          <div class="score-display">
+            <span id="aiScore">0</span>
+            <span class="score-unit">점</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 중앙 게임 보드 -->
+    <main class="board-container">
+      <div class="board-wrapper">
+        <div class="game-grid" id="gameGrid">
+          <!-- 3x3 격자 동적 생성 -->
+        </div>
+      </div>
+    </main>
+
+    <!-- 플레이어 손패 (핸드) -->
+    <section class="hand-section">
+      <div class="hand-instruction" id="handInstruction">
+        카드를 선택한 후 보드의 빈 칸을 클릭하세요
+      </div>
+      <div class="hand-cards" id="handCards">
+        <!-- 손패 카드 3장 동적 렌더링 -->
+      </div>
+      <div class="deck-count-badge" id="deckCount">남은 달 카드: 26장</div>
+    </section>
+  </div>
+
+  <!-- 게임 규칙 모달 -->
+  <div class="modal-overlay" id="rulesModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>🌙 게임 규칙 & 점수 획득법</h2>
+        <button class="close-btn" id="closeRulesBtn">&times;</button>
+      </div>
+      <div class="modal-content">
+        <div class="rulesSection">
+          <p style="margin-bottom: 14px; color: #b0bec5;">
+            <strong>떠오르는 반달(Rise of the Half Moon)</strong>은 턴을 번갈아 가며 달의 위상 카드를 배치하여 높은 점수를 겨루는 천체 전략 카드 게임입니다.
+          </p>
+
+          <div class="rule-item" style="margin-bottom: 10px;">
+            <h3>1. 동일 위상 쌍 (Phase Pair) <span class="rule-pts">+1점</span></h3>
+            <p>방금 내려놓은 카드와 <strong>상하좌우 인접한 곳에 완전히 같은 모양의 달 카드</strong>가 있으면 1점을 얻고 그 카드의 소유권을 뺏어옵니다.</p>
+          </div>
+
+          <div class="rule-item" style="margin-bottom: 10px;">
+            <h3>2. 보름달 쌍 (Full Moon Pair) <span class="rule-pts">+2점</span></h3>
+            <p>서로 빛나는 영역을 합쳤을 때 <strong>온전한 보름달(100%)</strong>이 되는 짝궁 카드를 인접하게 놓으면 2점을 얻고 소유권을 뺏어옵니다.<br>
+            <em style="color: #ffe082;">(예: 상현달 + 하현달, 초승달 + 이지러지는 달, 차오르는 달 + 그믐달, 신월 + 보름달)</em></p>
+          </div>
+
+          <div class="rule-item" style="margin-bottom: 10px;">
+            <h3>3. 달의 주기 사이클 (Lunar Cycle) <span class="rule-pts">장당 +1점 (3점+)</span></h3>
+            <p>가로 행이나 세로 열에서 <strong>달의 순환 순서대로 3장 이상 연속</strong>(예: 삭→초승달→상현달 또는 역순)으로 연결되면 사이클이 완성되어 장당 1점을 획득하고 모든 카드를 내 소유로 만듭니다!</p>
+          </div>
+
+          <div class="rule-item" style="margin-bottom: 10px;">
+            <h3>4. 카드 소유권 & 영토 보너스 <span class="rule-pts">+1점/장</span></h3>
+            <p>매칭을 성사시킬 때마다 관련된 상대의 카드가 내 소유(청록색 테두리)로 뒤집힙니다. 보드가 모두 채워지면 <strong>최종적으로 보드를 차지한 내 카드 수만큼 영토 보너스 점수</strong>가 추가됩니다!</p>
+          </div>
+
+          <div class="rule-item">
+            <h3>5. 라운드별 보드 확장</h3>
+            <p>라운드가 진행될수록 보드판이 넓어져 전략의 깊이가 더해집니다: <strong>라운드 1 (3×3) ➔ 라운드 2 (4×4) ➔ 라운드 3 (5×5)</strong></p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="primary-btn" onclick="document.getElementById('rulesModal').classList.remove('active')">이해했습니다, 시작하기!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 결과 모달 -->
+  <div class="modal-overlay" id="resultModal">
+    <div class="modal-box">
+      <div class="result-celebration">
+        <div class="result-icon" id="resultIcon">🏆</div>
+        <h2 class="result-title" id="resultTitle">당신의 승리!</h2>
+        <p id="resultDesc" style="color: #b0bec5; font-size: 0.95rem; margin-top: 6px;"></p>
+
+        <div class="score-summary-grid">
+          <div class="summary-card" id="summaryPlayerCard">
+            <div style="font-size: 0.85rem; color: #00e5ff; font-weight: 700;">🧑‍🚀 플레이어</div>
+            <div class="summary-pts" id="summaryPlayerPts" style="color: #00e5ff;">0</div>
+            <div style="font-size: 0.72rem; color: #9ea7c7;" id="summaryPlayerDetail">매칭 0점 + 점유 0점</div>
+          </div>
+          <div class="summary-card" id="summaryAiCard">
+            <div style="font-size: 0.85rem; color: #ffab00; font-weight: 700;">🌙 반달 AI</div>
+            <div class="summary-pts" id="summaryAiPts" style="color: #ffab00;">0</div>
+            <div style="font-size: 0.72rem; color: #9ea7c7;" id="summaryAiDetail">매칭 0점 + 점유 0점</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: center;">
+        <button class="primary-btn" id="nextRoundBtn">다음 라운드로</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 스크립트 로드 순서 -->
+  <script src="moon-data.js"></script>
+  <script src="audio.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
